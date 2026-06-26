@@ -1,61 +1,55 @@
-/*ListView, Card, ListTile, Images, Theme & Colors
+/*Navigation (Push/Pop between screens)
+   
+What is Navigation?
+In real apps you have multiple screens. For example:
+Screen 1 → Device List
+Screen 2 → Device Detail
+Navigation means moving from one screen to another.
+In Flutter, screens are called Routes and navigation works like a stack of plates:
+Push → add a new plate on top (go to new screen)
+Pop → remove the top plate (go back)
 
-1.ListView
-ListView is used to show a scrollable list of widgets. When you have many items that don't fit on screen, 
-ListView lets you scroll through them.
-Two ways to use ListView:
-Way 1 — ListView (small fixed list)
-ListView(
-  children: [
-    Text("Item 1"),
-    Text("Item 2"),
-    Text("Item 3"),
-  ],
-)
-Way 2 — ListView.builder (large dynamic list)
-ListView.builder(
-  itemCount: 5,        // how many items
-  itemBuilder: (context, index) {
-    return Text("Device $index");
-  },
+Navigator.push   go to a new screen
+Navigator.pop    go back to previous screen
+
+Navigator.push — Go to new screen
+Navigator.push(
+context,
+MaterialPageRoute(Builder:(context)=> SecondPage())
 )
 
-2. Card
-Card is a box with shadow and rounded corners. Used to show information in a clean way.
-Card(
-  elevation: 4,        // shadow depth
-  color: Colors.white,
-  child: Text("Device 1"),
-)
+Navigator.pop — Go back
+Navigator.pop(context);
 
-3.ListTile
-ListTile is a ready made row for lists. It has slots for icon, title, subtitle and trailing icon —
- you don't have to build a Row manually.
- ListTile(
-  leading: Icon(Icons.devices),    // left side icon
-  title: Text("ESP32"),            // main text
-  subtitle: Text("Connected"),     // smaller text below title
-  trailing: Icon(Icons.arrow_forward), // right side icon
-)
-
-
-4.Basic Theme & Colors
-You can set colors globally in MaterialApp so the whole app follows one color scheme:
-MaterialApp(
-  theme: ThemeData(
-    primaryColor: Colors.blue,
-    scaffoldBackgroundColor: Colors.grey[100],
-    appBarTheme: AppBarTheme(
-      backgroundColor: Colors.blue,
-      foregroundColor: Colors.white,
-    ),
+Passing data to next screen
+You can send data to the next screen through its constructor:
+// sending data
+Navigator.push(
+  context,
+  MaterialPageRoute(
+    builder: (context) => SecondPage(deviceName: "ESP32-01"),
   ),
-  home: HomePage(),
-)
+);
+
+// receiving data in SecondPage
+class SecondPage extends StatelessWidget {
+  String deviceName; // receives the data
+
+  SecondPage({required this.deviceName}); // constructor
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Text(deviceName), // use the data
+    );
+  }
+}
 
 
 
-example of all together :
+
+-----------------
+example
 import 'package:flutter/material.dart';
 
 void main() {
@@ -66,60 +60,79 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'practice',
-      theme: ThemeData(
-        primaryColor: Colors.blue,
-        scaffoldBackgroundColor: Colors.grey[100],
-      ),
-      home: Block3Page(),
+      title: 'Navigation',
+      home: FirstPage(),
     );
   }
 }
 
-class Block3Page extends StatelessWidget {
+// First Screen
+class FirstPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("IoT Devices"),
+        title: Text("Device List"),
         backgroundColor: Colors.blue,
       ),
-      body: ListView(
-        children: [
-          Card(
-            elevation: 4,
-            margin: EdgeInsets.all(8),
-            child: ListTile(
-              leading: Icon(Icons.wifi, color: Colors.green),
-              title: Text("ESP32 - Device 1"),
-              subtitle: Text("Temperature: 27.5°C"),
-              trailing: Icon(Icons.arrow_forward),
-            ),
-          ),
-          Card(
-            elevation: 4,
-            margin: EdgeInsets.all(8),
-            child: ListTile(
-              leading: Icon(Icons.wifi_off, color: Colors.red),
-              title: Text("ESP32 - Device 2"),
-              subtitle: Text("Offline"),
-              trailing: Icon(Icons.arrow_forward),
-            ),
-          ),
-          Card(
-            elevation: 4,
-            margin: EdgeInsets.all(8),
-            child: ListTile(
-              leading: Icon(Icons.wifi, color: Colors.green),
-              title: Text("ESP32 - Device 3"),
-              subtitle: Text("Humidity: 65%"),
-              trailing: Icon(Icons.arrow_forward),
-            ),
-          ),
-        ],
+      body: Center(
+        child: ElevatedButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => SecondPage(deviceName: "ESP32-01"),
+              ),
+            );
+          },
+          child: Text("Go to Device Detail"),
+        ),
       ),
     );
   }
 }
+
+// Second Screen
+class SecondPage extends StatelessWidget {
+  String deviceName;
+
+  SecondPage({required this.deviceName});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Device Detail"),
+        backgroundColor: Colors.blue,
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.devices, size: 80, color: Colors.blue),
+            SizedBox(height: 20),
+            Text(
+              deviceName,
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 10),
+            Text("Status: Online", style: TextStyle(color: Colors.green)),
+            SizedBox(height: 30),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context); // go back
+              },
+              child: Text("Go Back"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+
+
 
 */

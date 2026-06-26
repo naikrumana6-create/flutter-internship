@@ -1,152 +1,146 @@
- /*Widget Tree, Stateless vs Stateful, Scaffold, AppBar, Text, Icon
+ /*setState and How Rebuilds Work
+
+setState is a method in Flutter's StatefulWidget that tells Flutter to rebuild the UI when data changes.
+When you call setState(), Flutter:
+Updates the variable inside it
+Calls build() again
+Redraws the screen with the new value
+
+ElevatedButton(
+  onPressed: () {
+    setState(() {
+      count++; // ✅ count changes AND screen redraws!
+    });
+  },
+  child: Text("Add"),
+)
+
+How rebuilds work — Step by Step
+User presses button
+      ↓
+setState() is called
+      ↓
+Flutter marks this widget as "dirty" (needs redraw)
+      ↓
+Flutter calls build() again
+      ↓
+build() runs with new value of count
+      ↓
+Screen shows updated value!
 
 
- 1. widget tree - everything is a widget. A button is a widget. Text is a widget. Even the whole screen is a widget.
- And these widgets sit inside each other like a family tree — that's called the widget tree.*/
 
+Lifting State Up
+This is a very important concept. Let me explain simply.
+Imagine you have two widgets — a TextField and a Text. TextField is where user types, Text shows what they typed.
+Problem: if they are separate widgets, how does Text know what was typed in TextField?
+Answer: you lift the state up to their parent, and both widgets share it!
 
- //2. Stateless 
- /*A widget that never changes after it's built. Like a printed photo — once printed, it stays the same forever.
-Use it when: the screen has no buttons, no input, nothing that changes.*/
+class ParentPage extends StatefulWidget {
+  @override
+  State<ParentPage> createState() => _ParentPageState();
+}
 
-/*class MyName extends StatelessWidget {
+class _ParentPageState extends State<ParentPage> {
+  String typed = ""; // state lives in PARENT
+
   @override
   Widget build(BuildContext context) {
-    return Text("I am Zuzu"); // this never changes
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Child 1 - updates the shared state
+            TextField(
+              onChanged: (value) {
+                setState(() {
+                  typed = value; // updates parent's state
+                });
+              },
+            ),
+            SizedBox(height: 20),
+            // Child 2 - reads the shared state
+            Text(
+              "You typed: $typed",
+              style: TextStyle(fontSize: 20),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
-
-/* 3.Stateful
-A widget that can change based on user actions. Like a live camera — it keeps updating.
-Use it when: something on screen changes — button press, typing, loading data.*/
-class MyCounter extends StatefulWidget {
-  @override
-  State<MyCounter> createState() => _MyCounterState();
-}
-
-class _MyCounterState extends State<MyCounter> {
-  int count = 0; // this will change!
-
-  @override
-  Widget build(BuildContext context) {
-    return Text("Count: $count");
-  }
-}
+Both TextField and Text are children of ParentPage. The state typed lives in the parent — so both can access it!
 
 
-
-4. Scaffold - Scaffold is the basic structure of every screen. Think of it like the skeleton of a human body — it 
-holds everything in place.
-It gives you:
-Top bar (AppBar)
-Main content area (body)
-Bottom bar
-Floating button
-
-Scaffold(
-  appBar: AppBar(
-    title: Text("My App"),
-  ),
-  body: Center(
-    child: Text("Hello!"),
-  ),
-  floatingActionButton: FloatingActionButton(
-    onPressed: () {},
-    child: Icon(Icons.add),
-  ),
-)
-
-
-
-5. AppBar -AppBar is the top bar of your screen. It shows the title, back button, and action icons.
-
-AppBar(
-  title: Text("Device Dashboard"),
-  backgroundColor: Colors.blue,
-  centerTitle: true,
-  leading: Icon(Icons.menu),       // left side icon
-  actions: [
-    Icon(Icons.search),            // right side icons
-    Icon(Icons.notifications),
-  ],
-)
-
-CORRECT way for multiple widgets in title
-AppBar(
-  title: Row(
-    children: [Text("Hello"), Text("World")]
-  )
-)
-
-6.Text - Text widget shows words on screen. Very simple but has many styling options.
-  Text(
-  "Hello Zuzu!",
-  style: TextStyle(
-    fontSize: 24,
-    color: Colors.blue,
-    fontWeight: FontWeight.bold,
-    fontStyle: FontStyle.italic,
-  ),
-  textAlign: TextAlign.center,
-  maxLines: 2, //how many lines allowed
-  overflow: TextOverflow.ellipsis, // shows ... if text is too long
-)
-
-
-icon - Icon shows a small image/symbol from Flutter's built-in icon library.
-Icon(
-  Icons.home,           // which icon
-  color: Colors.red,    // icon color
-  size: 40,             // icon size
-)
-Commonly used Icons:
-Icons.home          // house
-Icons.person        // person/user
-Icons.settings      // gear/settings
-Icons.search        // magnifying glass
-Icons.add           // plus sign
-Icons.delete        // trash bin
-Icons.edit          // pencil
-Icons.wifi          // wifi symbol
-Icons.power         // power button
-Icons.notifications // bell
-
-*/
-
-
-
-/* example of all putting it together in a simple app
-import 'package:flutter/material.dart';
-
-void main() {
-  runApp(MyApp());
-}
+ 
 
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'IoT decive',
-      home: HomePage(),
+      title: 'Block 1',
+      home: ParentPage(),
     );
   }
 }
 
-class HomePage extends StatelessWidget
-{
+class ParentPage extends StatefulWidget {
   @override
-  Widget build(BuildContext contex)
-  {
-    return Scaffold
-    (appBar : AppBar(title : Text("Iot decive"),backgroundColor: Colors.blueAccent),
-    body: Center( child :Column( mainAxisAlignment: MainAxisAlignment.center,
-    children:[Icon(Icons.wifi,size:100),Text("Connected")])),
-     floatingActionButton: FloatingActionButton(onPressed:(){
-      print("Button pressed");
-     },
-     child :Icon(Icons.refresh),
-     )
-    
+  State<ParentPage> createState() => _ParentPageState();
+}
+
+class _ParentPageState extends State<ParentPage> {
+  int count = 0;
+  String status = "Offline";
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("setState Practice"),
+        backgroundColor: Colors.blue,
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              "Count: $count",
+              style: TextStyle(fontSize: 30),
+            ),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  count++;
+                });
+              },
+              child: Text("Add"),
+            ),
+            SizedBox(height: 40),
+            Text(
+              "Device is: $status",
+              style: TextStyle(fontSize: 20),
+            ),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  status = status == "Offline" ? "Online" : "Offline";   //Is status equal to Offline? If YES → set it to Online. If NO → set it to Offline."
+                });
+              },
+              child: Text("Toggle Status"),
+            ),
+          ],
+        ),
+      ),
     );
   }
-}*/
+}
+
+
+ 
+
+*/
