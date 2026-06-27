@@ -1,136 +1,68 @@
-/*Navigation (Push/Pop between screens)
+/*FutureBuilder, Loading & Error States, Pull-to-Refresh
    
-What is Navigation?
-In real apps you have multiple screens. For example:
-Screen 1 → Device List
-Screen 2 → Device Detail
-Navigation means moving from one screen to another.
-In Flutter, screens are called Routes and navigation works like a stack of plates:
-Push → add a new plate on top (go to new screen)
-Pop → remove the top plate (go back)
+What is FutureBuilder?
+Until now you used a button to fetch data. But in real apps, data loads automatically when screen opens — 
+no button needed.
+FutureBuilder is a widget that:
+Automatically calls your fetch function when screen opens
+Shows a loading spinner while waiting
+Shows data when it arrives
+Shows error if something goes wrong
 
-Navigator.push   go to a new screen
-Navigator.pop    go back to previous screen
+FutureBuilder(
+  future: fetchPosts(),      // function to call
+  builder: (context, snapshot) {
+    // snapshot holds the current state
 
-Navigator.push — Go to new screen
-Navigator.push(
-context,
-MaterialPageRoute(Builder:(context)=> SecondPage())
+    if (snapshot.connectionState == ConnectionState.waiting) {
+      return CircularProgressIndicator(); // loading spinner
+    }
+
+    if (snapshot.hasError) {
+      return Text("Error: ${snapshot.error}"); // error state
+    }
+
+    // data is ready!
+    var data = snapshot.data;
+    return Text(data.toString());
+  },
 )
 
-Navigator.pop — Go back
-Navigator.pop(context);
 
-Passing data to next screen
-You can send data to the next screen through its constructor:
-// sending data
-Navigator.push(
-  context,
-  MaterialPageRoute(
-    builder: (context) => SecondPage(deviceName: "ESP32-01"),
-  ),
-);
+What is snapshot?
+Snapshot is like a live update of what's happening with your Future:
+snapshot state                  Meaning
+ConnectionState.waiting         still loading
+snapshot.hasError               something went wrong
+snapshot.hasData                data is ready
+snapshot.data                   the actual data
 
-// receiving data in SecondPage
-class SecondPage extends StatelessWidget {
-  String deviceName; // receives the data
-
-  SecondPage({required this.deviceName}); // constructor
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Text(deviceName), // use the data
-    );
-  }
+// State 1 - Loading
+if (snapshot.connectionState == ConnectionState.waiting) {
+  return CircularProgressIndicator(); // spinning circle
 }
 
-
-
-
------------------
-example
-import 'package:flutter/material.dart';
-
-void main() {
-  runApp(MyApp());
+// State 2 - Error
+if (snapshot.hasError) {
+  return Text("Something went wrong!");
 }
 
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Navigation',
-      home: FirstPage(),
-    );
-  }
-}
+// State 3 - Data ready
+return Text(snapshot.data.toString());
 
-// First Screen
-class FirstPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("Device List"),
-        backgroundColor: Colors.blue,
-      ),
-      body: Center(
-        child: ElevatedButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => SecondPage(deviceName: "ESP32-01"),
-              ),
-            );
-          },
-          child: Text("Go to Device Detail"),
-        ),
-      ),
-    );
-  }
-}
 
-// Second Screen
-class SecondPage extends StatelessWidget {
-  String deviceName;
 
-  SecondPage({required this.deviceName});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("Device Detail"),
-        backgroundColor: Colors.blue,
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.devices, size: 80, color: Colors.blue),
-            SizedBox(height: 20),
-            Text(
-              deviceName,
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 10),
-            Text("Status: Online", style: TextStyle(color: Colors.green)),
-            SizedBox(height: 30),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context); // go back
-              },
-              child: Text("Go Back"),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
+Pull to Refresh
+Pull to refresh means pulling down on the list to reload data — like Gmail or Instagram.
+In Flutter this is done with RefreshIndicator:
+RefreshIndicator(
+  onRefresh: () async {
+    // reload your data here
+    await fetchPosts();
+  },
+  child: ListView(...), // your list goes here
+)
+When user pulls down → onRefresh is called → data reloads!
 
 
 

@@ -1,88 +1,99 @@
 //block 4
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
 void main() {
   runApp(MyApp());
 }
+
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'IoT Dashboard',
-      home: DashboardPage(),
+      home: HomePage(),
     );
   }
 }
-// First Screen
-class DashboardPage extends StatelessWidget {
+
+class Post {
+  int id;
+  String title;
+
+  Post({required this.id, required this.title});
+
+  factory Post.fromJson(Map<String, dynamic> json) {
+    return Post(
+      id: json["id"],
+      title: json["title"],
+    );
+  }
+}
+
+class HomePage extends StatefulWidget {
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  late Future<List<Post>> futurePosts;
+
+  @override
+  void initState() {
+    super.initState();
+    futurePosts = fetchPosts(); 
+  }
+
+  Future<List<Post>> fetchPosts() async {
+    var response = await http.get(
+      Uri.parse("https://jsonplaceholder.typicode.com/posts"),
+    );
+    var jsonList = jsonDecode(response.body);
+    return jsonList.map<Post>((item) => Post.fromJson(item)).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("IoT Dashboard"),
+        title: Text("Posts"),
         backgroundColor: Colors.blue,
       ),
-      body: ListView(
-        children: [
-          Card(
-            margin: EdgeInsets.all(8),
-            child: ListTile(
-              leading: Icon(Icons.wifi, color: Colors.green),
-              title: Text("ESP32-01"),
-              subtitle: Text("Temperature: 27.5°C"),
-              trailing: Icon(Icons.arrow_forward),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => DetailPage(),
+      body: FutureBuilder<List<Post>>(
+        future: futurePosts,
+        builder: (context, snapshot) {
+
+          
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          }
+
+          // Error
+          if (snapshot.hasError) {
+            return Center(child: Text("Error!"));
+          }
+          List<Post> posts = snapshot.data!;
+          return RefreshIndicator(
+            onRefresh: () async {
+              setState(() {
+                futurePosts = fetchPosts();
+              });
+            },
+            child: ListView.builder(
+              itemCount: posts.length,
+              itemBuilder: (context, index) {
+                return Card(
+                  margin: EdgeInsets.all(8),
+                  child: ListTile(
+                    leading: Text("${posts[index].id}"),
+                    title: Text(posts[index].title),
                   ),
                 );
               },
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-// Second Screen
-class DetailPage extends StatefulWidget {
-  @override
-  State<DetailPage> createState() => _DetailPageState();
-}
-class _DetailPageState extends State<DetailPage> {
-  String status = "Online";
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("ESP32-01"),
-        backgroundColor: Colors.blue,
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text("Temperature: 27.5°C", style: TextStyle(fontSize: 20)),
-            SizedBox(height: 20),
-            Text(
-              status,
-              style: TextStyle(
-                fontSize: 22,
-                color: status == "Online" ? Colors.green : Colors.red,
-              ),
-            ),
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  status = status == "Online" ? "Offline" : "Online";
-                });
-              },
-              child: Text("Toggle Status"),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
