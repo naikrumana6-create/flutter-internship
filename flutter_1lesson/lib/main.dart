@@ -1,7 +1,8 @@
-//block 4
+// Block 4
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:async'; // new
 
 void main() {
   runApp(MyApp());
@@ -11,22 +12,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'IoT Dashboard',
       home: HomePage(),
-    );
-  }
-}
-
-class Post {
-  int id;
-  String title;
-
-  Post({required this.id, required this.title});
-
-  factory Post.fromJson(Map<String, dynamic> json) {
-    return Post(
-      id: json["id"],
-      title: json["title"],
     );
   }
 }
@@ -37,64 +23,74 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  late Future<List<Post>> futurePosts;
+  List readings = [];
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    futurePosts = fetchPosts(); 
+    fetchReadings();
+    // auto refresh every 5 seconds — new
+    Timer.periodic(Duration(seconds: 5), (t) {
+      fetchReadings();
+    });
   }
 
-  Future<List<Post>> fetchPosts() async {
+  Future<void> fetchReadings() async {
     var response = await http.get(
-      Uri.parse("https://jsonplaceholder.typicode.com/posts"),
+      Uri.parse("http://127.0.0.1:8000/readings"),
     );
-    var jsonList = jsonDecode(response.body);
-    return jsonList.map<Post>((item) => Post.fromJson(item)).toList();
+    setState(() {
+      readings = jsonDecode(response.body);
+      isLoading = false;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Posts"),
+        title: Text("IoT Live Dashboard"),
         backgroundColor: Colors.blue,
-      ),
-      body: FutureBuilder<List<Post>>(
-        future: futurePosts,
-        builder: (context, snapshot) {
-
-          
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          }
-
-          // Error
-          if (snapshot.hasError) {
-            return Center(child: Text("Error!"));
-          }
-          List<Post> posts = snapshot.data!;
-          return RefreshIndicator(
-            onRefresh: () async {
-              setState(() {
-                futurePosts = fetchPosts();
-              });
-            },
-            child: ListView.builder(
-              itemCount: posts.length,
-              itemBuilder: (context, index) {
-                return Card(
-                  margin: EdgeInsets.all(8),
-                  child: ListTile(
-                    leading: Text("${posts[index].id}"),
-                    title: Text(posts[index].title),
+        actions: [
+        IconButton(
+        icon: Icon(Icons.refresh, color: Colors.white),
+        onPressed: fetchReadings,
+    ),
+  ],
+),
+      body: isLoading
+          ? Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                Container(
+                  width: double.infinity,
+                  color: Colors.blue[100],
+                  padding: EdgeInsets.all(16),
+                  child: Text(
+                    "Latest → Temp: ${readings.last["temperature"]}°C  |  Humidity: ${readings.last["humidity"]}%",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
-                );
-              },
+                ),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: readings.length,
+                    itemBuilder: (context, index) {
+                      return Card(
+                        margin: EdgeInsets.all(8),
+                        child: ListTile(
+                          leading: Icon(Icons.devices, color: Colors.blue),
+                          title: Text("${readings[index]["device_id"]}"),
+                          subtitle: Text(
+                            "Temp: ${readings[index]["temperature"]}°C  |  Humidity: ${readings[index]["humidity"]}%",
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
-          );
-        },
-      ),
     );
   }
 }

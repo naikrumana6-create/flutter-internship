@@ -1,69 +1,94 @@
-/*FutureBuilder, Loading & Error States, Pull-to-Refresh
+/*Add a refresh button that auto refreshes every few seconds
    
-What is FutureBuilder?
-Until now you used a button to fetch data. But in real apps, data loads automatically when screen opens — 
-no button needed.
-FutureBuilder is a widget that:
-Automatically calls your fetch function when screen opens
-Shows a loading spinner while waiting
-Shows data when it arrives
-Shows error if something goes wrong
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'dart:async'; // new
 
-FutureBuilder(
-  future: fetchPosts(),      // function to call
-  builder: (context, snapshot) {
-    // snapshot holds the current state
-
-    if (snapshot.connectionState == ConnectionState.waiting) {
-      return CircularProgressIndicator(); // loading spinner
-    }
-
-    if (snapshot.hasError) {
-      return Text("Error: ${snapshot.error}"); // error state
-    }
-
-    // data is ready!
-    var data = snapshot.data;
-    return Text(data.toString());
-  },
-)
-
-
-What is snapshot?
-Snapshot is like a live update of what's happening with your Future:
-snapshot state                  Meaning
-ConnectionState.waiting         still loading
-snapshot.hasError               something went wrong
-snapshot.hasData                data is ready
-snapshot.data                   the actual data
-
-// State 1 - Loading
-if (snapshot.connectionState == ConnectionState.waiting) {
-  return CircularProgressIndicator(); // spinning circle
+void main() {
+  runApp(MyApp());
 }
 
-// State 2 - Error
-if (snapshot.hasError) {
-  return Text("Something went wrong!");
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: HomePage(),
+    );
+  }
 }
 
-// State 3 - Data ready
-return Text(snapshot.data.toString());
+class HomePage extends StatefulWidget {
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
 
+class _HomePageState extends State<HomePage> {
+  List readings = [];
+  bool isLoading = true;
 
+  @override
+  void initState() {
+    super.initState();
+    fetchReadings();
+    // auto refresh every 5 seconds — new
+    Timer.periodic(Duration(seconds: 5), (t) {
+      fetchReadings();
+    });
+  }
 
-Pull to Refresh
-Pull to refresh means pulling down on the list to reload data — like Gmail or Instagram.
-In Flutter this is done with RefreshIndicator:
-RefreshIndicator(
-  onRefresh: () async {
-    // reload your data here
-    await fetchPosts();
-  },
-  child: ListView(...), // your list goes here
-)
-When user pulls down → onRefresh is called → data reloads!
+  Future<void> fetchReadings() async {
+    var response = await http.get(
+      Uri.parse("http://127.0.0.1:8000/readings"),
+    );
+    setState(() {
+      readings = jsonDecode(response.body);
+      isLoading = false;
+    });
+  }
 
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("IoT Dashboard"),
+        backgroundColor: Colors.blue,
+      ),
+      body: isLoading
+          ? Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                Container(
+                  width: double.infinity,
+                  color: Colors.blue[100],
+                  padding: EdgeInsets.all(16),
+                  child: Text(
+                    "Latest → Temp: ${readings.last["temperature"]}°C  |  Humidity: ${readings.last["humidity"]}%",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: readings.length,
+                    itemBuilder: (context, index) {
+                      return Card(
+                        margin: EdgeInsets.all(8),
+                        child: ListTile(
+                          leading: Icon(Icons.devices, color: Colors.blue),
+                          title: Text("${readings[index]["device_id"]}"),
+                          subtitle: Text(
+                            "Temp: ${readings[index]["temperature"]}°C  |  Humidity: ${readings[index]["humidity"]}%",
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
+}
 
 
 
